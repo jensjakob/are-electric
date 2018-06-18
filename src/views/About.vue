@@ -9,7 +9,7 @@
           <input type="checkbox"
             v-on:change="toggleTake(day)"
             v-bind:checked="day.take"
-            v-bind:disabled="!day.take && day.booked"><!-- maybe remove and fix? -->
+            v-bind:disabled="!day.take && day.booked">
           <del v-if="day.booked">
             {{ day.text }}
           </del>
@@ -120,11 +120,14 @@ export default {
       const today = new Date();
       db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
         .onSnapshot((querySnapshot) => {
-          querySnapshot.forEach((doc) => {
-            const theDay = moment.unix(doc.data().day.seconds).format('YYYY-MM-DD');
-            this.days.find(day => day.text === theDay).booked = true;
-            // moment(doc.data().day.seconds).format('YYYY-MM-DD')
-            // cities.push(doc.data().day);
+          querySnapshot.docChanges().forEach((change) => {
+            const theDay = moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
+            if (change.type === 'added') {
+              this.days.find(day => day.text === theDay).booked = true;
+            }
+            if (change.type === 'removed') {
+              this.days.find(day => day.text === theDay).booked = false;
+            }
           });
         });
     },
@@ -134,13 +137,24 @@ export default {
       if (day.take === false) {
         // eslint-disable-next-line
         day.take = true;
-        // eslint-disable-next-line
-        day.booked = true;
+
+        const now = new Date();
+        const selected = new Date(day.text);
+        db.collection('calendar').add({
+          day: selected,
+          status: 'temp',
+          added: now,
+        })
+          .then((docRef) => {
+            // eslint-disable-next-line
+            day.dbRefId = docRef.id;
+          });
       } else {
         // eslint-disable-next-line
         day.take = false;
+        db.collection('calendar').doc(day.dbRefId).delete();
         // eslint-disable-next-line
-        day.booked = false;
+        // day.booked = false;
       }
     },
   },
