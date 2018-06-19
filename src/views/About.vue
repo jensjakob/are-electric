@@ -23,7 +23,8 @@
 </template>
 
 <script>
-import firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
 import moment from 'moment';
 
 moment.locale('sv');
@@ -37,6 +38,12 @@ const config = {
   messagingSenderId: '302291386863',
 };
 firebase.initializeApp(config);
+
+// let db;
+// firebase.firestore().enablePersistence()
+//   .then(() => {
+//     db = firebase.firestore();
+//   });
 
 const db = firebase.firestore();
 const settings = { timestampsInSnapshots: true };
@@ -117,7 +124,10 @@ export default {
         .onSnapshot((snap) => {
           this.name = snap.data().first;
         });
+
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
         .onSnapshot((querySnapshot) => {
           querySnapshot.docChanges().forEach((change) => {
