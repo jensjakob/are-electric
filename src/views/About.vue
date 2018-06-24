@@ -2,23 +2,76 @@
   <div id="thing" class="about">
     <h1>This is an about page</h1>
     <p>{{ name }}</p>
-    <p>Name: <input v-model="name"></p>
-    <ol>
+    <p>test-db-sync: <input v-model="name"></p>
+
+<hr>
+
+<div class="calendar">
+  <template v-for="(day, index) in calendar">
+    <div v-if="moment(index).weekday() === 0" class="calendar-week-box" v-bind:key="moment(index).week()">
+      v. {{ moment(index).week() }}
+    </div>
+    <div class="calendar-box" v-bind:key="index">
+      <div v-if="day.booked" class="booked">
+        X
+      </div>
+      <div v-else-if="fromDay === index" class="selected">
+        {{ moment(index).format('D') }}
+      </div>
+      <div v-else-if="fromDay" v-on:click="toDay = index">
+        {{ moment(index).format('D') }}
+      </div>
+      <div v-else-if="!fromDay" v-on:click="fromDay = index">
+        {{ moment(index).format('D') }}
+      </div>
+    </div>
+  </template>
+</div>
+
+    <div>
+      <p v-for="(item, index) in items" v-bind:key="item.id">
+        <input type="radio" name="item" v-model.number="selectedItem" v-bind:value="index">
+          {{ item.title }}<br>
+          {{ item.price }} SEK
+      </p>
+    </div>
+
+    <div>
+      <p>Pickup: <input type="date" v-model="fromDay"> between 9-11 am</p>
+      <p v-if="fromDay">Leave: <input type="date" v-model="toDay"> between 3-4 pm</p>
+    </div>
+
+    <div v-if="selectedItem !== undefined">
+      <h2>Price</h2>
+      <p>{{ calcDays }} days à {{ items[selectedItem].price }} SEK = {{ calcPrice }} SEK</p>
+    </div>
+
+    <div>
+      <p>E-mail: <input type="email" v-model="email"></p>
+      <p>Phone: <input type="tel" v-model="phone"></p>
+      <p><input type="checkbox" v-model="agree"> Agree terms</p>
+      <button>Make reservation</button>
+    </div>
+
+    <ul>
       <li v-for="day in days" :key="day.id">
         <label>
           <input type="checkbox"
             v-on:change="toggleTake(day)"
             v-bind:checked="day.take"
-            v-bind:disabled="!day.take && day.booked">
-          <del v-if="day.booked">
+            v-bind:disabled="!day.take && day.status == 'booked'">
+          <del v-if="day.status == 'booked'">
             {{ day.text }}
           </del>
           <span v-else>
             {{ day.text }}
           </span>
+          <span v-if="!day.take && day.status == 'temp'">
+            /!\
+          </span>
         </label>
       </li>
-    </ol>
+    </ul>
   </div>
 </template>
 
@@ -78,6 +131,32 @@ db.settings(settings);
 export default {
   data() {
     return {
+      fromDay: '',
+      toDay: '',
+      calcDays: 0,
+      calcPrice: 0,
+      selectedItem: undefined,
+      items: [
+        {
+          id: 1,
+          name: 'tesla1',
+          title: 'Tesla S 2018',
+          price: '2000',
+        },
+        {
+          id: 2,
+          name: 'tesla2',
+          title: 'Tesla S 2015',
+          price: '1800',
+        },
+      ],
+      email: '',
+      phone: '',
+      agree: false,
+      agreeIP: '',
+      agreeStamp: '',
+
+      calendar: {},
       name: 'temp',
       days: [
         // { text: '2018-06-16', booked: false, take: false },
@@ -94,24 +173,65 @@ export default {
         first: val,
       });
     },
+    // eslint-disable-next-line
+    fromDay: function (val) {
+      if (this.toDay) {
+        this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
+      }
+      // this.calendar[this.fromDay].from = true;
+    },
+    // eslint-disable-next-line
+    toDay: function (val) {
+      if (this.fromDay) {
+        this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
+
+        if (this.selectedItem !== undefined) {
+          this.calcPrice = this.calcDays * this.items[this.selectedItem].price;
+        }
+
+        // if (this.fromDay >= this.toDay) {
+        //   this.toDay = moment(this.fromDay).add(1, 'days').format('L');
+        // }
+
+        // if (this.calcDays >= 0) {
+        //   this.calcDays = 0;
+        // }
+      }
+      // this.calendar[this.toDay].to = true;
+    },
   },
   // created: () => {
   //   this.fetchData();
   // },
   mounted() {
-    const date = new Date();
-
     this.fetchData();
     // console.log(moment().format('YYYY-MM-DD HH:mm'));
 
-    date.setDate(date.getDate() - 1);
-    for (let i = 0; i < 21; i += 1) {
-      date.setDate(date.getDate() + 1);
+    const today = new Date();
+    // const firstDayOfMonth = moment().startOf('month').format('L');
+    let firstDay = moment(today).weekday('-0');
+    let lastDay = moment().add(1, 'M').endOf('month');
+    let lastSunday = moment(lastDay).weekday('6');
+    let daysToShow = moment(lastSunday).diff(firstDay, 'days');
+
+    const date = new Date(firstDay);
+    let thisDay;
+    for (let i = 0; i <= daysToShow; i += 1) {
+      thisDay = moment(date).format('YYYY-MM-DD');
       this.days.push({
         text: moment(date).format('YYYY-MM-DD'),
-        booked: false,
+        status: '',
         take: false,
       });
+      console.log(thisDay);
+
+      this.calendar[thisDay] = {
+        disabled: false,
+        booked: false,
+        warning: false,
+        selected: false,
+      };
+      date.setDate(date.getDate() + 1);
     }
 
     // this.days.findIndex('2018-06-29').booked = true;
@@ -119,6 +239,10 @@ export default {
     // this.days.find(day => day.text === '2018-06-16').booked = true;
   },
   methods: {
+    // eslint-disable-next-line
+    moment: function (val) {
+      return moment(val);
+    },
     fetchData() {
       db.collection('users').doc('LjMAmyGQhb7Pig2zxwgx')
         .onSnapshot((snap) => {
@@ -133,11 +257,16 @@ export default {
           querySnapshot.docChanges().forEach((change) => {
             const theDay = moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
             if (change.type === 'added') {
-              this.days.find(day => day.text === theDay).booked = true;
+              if (change.doc.data().status === 'booked') {
+                this.calendar[theDay].booked = true;
+              }
+              this.days.find(day => day.text === theDay).status = change.doc.data().status;
             }
             if (change.type === 'removed') {
-              this.days.find(day => day.text === theDay).booked = false;
+              // this will also clear any previous temp state
+              this.days.find(day => day.text === theDay).status = '';
             }
+            // if changed to booked?
           });
         });
     },
@@ -183,6 +312,32 @@ body {
   border-radius: 4px;
   padding: 20px;
   transition: all 0.2s;
+}
+
+.calendar {
+  width: 100%;
+  /* display: flex; */
+  text-align: center;
+}
+
+.calendar-week-box {
+  display: inline-block;
+  width: 12.5%;
+}
+
+.calendar-box {
+  display: inline-block;
+  width: 12.5%;
+  background-color: silver;
+  font-weight: bold;
+}
+
+.calendar .booked {
+  color: red;
+}
+
+.calendar .selected {
+  background-color: cyan;
 }
 
 li {
