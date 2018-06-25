@@ -6,16 +6,27 @@
 
 <hr>
 
+<div>
+  <p v-for="(item, index) in items" v-bind:key="item.id">
+    <input type="radio" name="item" v-model.number="selectedItem" v-bind:value="index">
+      {{ item.title }}<br>
+      {{ item.price }} SEK
+  </p>
+</div>
+
 <div class="calendar">
   <template v-for="(day, index) in calendar">
     <div v-if="moment(index).weekday() === 0" class="calendar-week-box" v-bind:key="moment(index).week()">
       v. {{ moment(index).week() }}
     </div>
     <div class="calendar-box" v-bind:key="index">
-      <div v-if="day.booked" class="booked">
+      <div v-if="day.disabled" class="disabled">
+        {{ moment(index).format('D') }}
+      </div>
+      <div v-else-if="day.booked" class="booked">
         X
       </div>
-      <div v-else-if="fromDay === index" class="selected">
+      <div v-else-if="day.selected" class="selected" v-on:click="toDay = ''; fromDay = ''">
         {{ moment(index).format('D') }}
       </div>
       <div v-else-if="fromDay" v-on:click="toDay = index">
@@ -28,13 +39,6 @@
   </template>
 </div>
 
-    <div>
-      <p v-for="(item, index) in items" v-bind:key="item.id">
-        <input type="radio" name="item" v-model.number="selectedItem" v-bind:value="index">
-          {{ item.title }}<br>
-          {{ item.price }} SEK
-      </p>
-    </div>
 
     <div>
       <p>Pickup: <input type="date" v-model="fromDay"> between 9-11 am</p>
@@ -50,7 +54,7 @@
       <p>E-mail: <input type="email" v-model="email"></p>
       <p>Phone: <input type="tel" v-model="phone"></p>
       <p><input type="checkbox" v-model="agree"> Agree terms</p>
-      <button>Make reservation</button>
+      <button v-bind:disabled="selectedItem === undefined || !fromDay || !toDay || !email || !phone || !agree" v-on:click="saveReservation">Make reservation</button>
     </div>
 
     <ul>
@@ -162,6 +166,7 @@ export default {
         // { text: '2018-06-16', booked: false, take: false },
         // { text: '2018-06-17', booked: true, take: false },
       ],
+      reservationRefId: '',
     };
   },
   // mounted() {
@@ -175,6 +180,10 @@ export default {
     },
     // eslint-disable-next-line
     fromDay: function (val) {
+      Object.keys(this.calendar).forEach((key) => {
+        this.calendar[key].selected = false;
+      });
+      this.calendar[val].selected = true;
       if (this.toDay) {
         this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
       }
@@ -185,13 +194,27 @@ export default {
       if (this.fromDay) {
         this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
 
+        Object.keys(this.calendar).forEach((key) => {
+          this.calendar[key].selected = false;
+        });
+
+        const date = new Date(this.fromDay);
+        for (let i = 0; i <= this.calcDays; i += 1) {
+          if (this.calendar[moment(date).format('L')].booked) {
+            this.toDay = moment(date.setDate(date.getDate() - 1)).format('L');
+            break;
+          }
+          this.calendar[moment(date).format('L')].selected = true;
+          date.setDate(date.getDate() + 1);
+        }
+
         if (this.selectedItem !== undefined) {
           this.calcPrice = this.calcDays * this.items[this.selectedItem].price;
         }
 
-        // if (this.fromDay >= this.toDay) {
-        //   this.toDay = moment(this.fromDay).add(1, 'days').format('L');
-        // }
+        if (this.fromDay >= this.toDay) {
+          this.toDay = moment(this.fromDay).add(1, 'days').format('L');
+        }
 
         // if (this.calcDays >= 0) {
         //   this.calcDays = 0;
@@ -209,10 +232,10 @@ export default {
 
     const today = new Date();
     // const firstDayOfMonth = moment().startOf('month').format('L');
-    let firstDay = moment(today).weekday('-0');
-    let lastDay = moment().add(1, 'M').endOf('month');
-    let lastSunday = moment(lastDay).weekday('6');
-    let daysToShow = moment(lastSunday).diff(firstDay, 'days');
+    const firstDay = moment(today).weekday('-0');
+    const lastDay = moment().add(1, 'M').endOf('month');
+    const lastSunday = moment(lastDay).weekday('6');
+    const daysToShow = moment(lastSunday).diff(firstDay, 'days');
 
     const date = new Date(firstDay);
     let thisDay;
@@ -223,7 +246,6 @@ export default {
         status: '',
         take: false,
       });
-      console.log(thisDay);
 
       this.calendar[thisDay] = {
         disabled: false,
@@ -231,6 +253,11 @@ export default {
         warning: false,
         selected: false,
       };
+
+      if (moment().diff(thisDay, 'days') > 0) {
+        this.calendar[thisDay].disabled = true;
+      }
+
       date.setDate(date.getDate() + 1);
     }
 
@@ -296,6 +323,24 @@ export default {
         // day.booked = false;
       }
     },
+    saveReservation() {
+      const now = new Date();
+      db.collection('reservations').add({
+        item: this.items[this.selectedItem].name,
+        start: this.fromDay,
+        end: this.toDay,
+        email: this.email,
+        phone: this.phone,
+        agreeIP: this.agreeIP,
+        agreeStamp: this.agreeStamp,
+        added: now,
+      })
+        .then((docRef) => {
+          // eslint-disable-next-line
+          this.reservationRefId = docRef.id;
+          this.$router.push({ path: 'about', query: { ref: docRef.id } });
+        });
+    },
   },
 };
 </script>
@@ -330,6 +375,11 @@ body {
   width: 12.5%;
   background-color: silver;
   font-weight: bold;
+  cursor: pointer;
+}
+
+.calendar .disabled {
+  color: gray;
 }
 
 .calendar .booked {
