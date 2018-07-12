@@ -1,25 +1,14 @@
 <template>
   <div>
-    <div>
-      <p>✔ Car is reserved. Confirmation has been sent via email.</p>
-
-      <p>To keep you reservation you need to make your payment within 3 days.</p>
-
-      <button>Pay with card</button>
-
-      <button>Pay with PayPal account</button>
-
-      <p>Åre Electic AB<br>phone<br>email</p>
-    </div>
-
-    <div>
+    <div v-if="paid !== undefined">
       <p>✔ Payment is confirmed.</p>
 
-      <h2>Reservation {{ $route.query.ref }}</h2>
+      <h2>Reservation</h2>
+      <p><pre>ID: {{ $route.query.ref }}</pre></p>
 
-      <p>Before you can pick up your car you need to give us your complete contact details.</p>
+      <p>Before you can get your car you need to give us your complete contact details.</p>
 
-      <p>Confirm your identity using Swedish BankID</p>
+      <p><button>Confirm your identity using Swedish BankID</button></p>
 
       <p>
         {{ isCompany ? 'Company name' : 'Name' }}:
@@ -55,13 +44,27 @@
 
     </div>
 
-    <div>
+    <div v-else-if="contactName !== undefined">
       <p>✔ Contact details is saved</p>
       <p>Reservation details and terms has been sent to your email account.</p>
       <p>You can still add drivers visiting the reservation details page.</p>
       <button>Reservation details</button>
       <h2>Terms and conditions</h2>
       <p>Everything about cancellations, personal details, insurences etc.</p>
+    </div>
+
+    <div v-else>
+      <p>✔ Car is reserved. Confirmation has been sent via email.</p>
+
+      <p>Reservation ID: {{ $route.query.ref }}</p>
+
+      <p>To keep you reservation you need to make your payment within 3 days.</p>
+
+      <button>Pay with card</button>
+
+      <button>Pay with PayPal account</button>
+
+      <p>Åre Electic AB<br>phone<br>email</p>
     </div>
 
   </div>
@@ -71,6 +74,7 @@
 export default {
   data() {
     return {
+      paid: undefined,
       name: '',
       isCompany: false,
       country: 'se',
@@ -82,7 +86,7 @@ export default {
       stayStreet: '',
       stayZip: '',
       stayCity: '',
-      contactName: '',
+      contactName: undefined,
       drivers: [],
     };
   },
@@ -94,6 +98,17 @@ export default {
         this.isCompany = true;
       }
     },
+  },
+  mounted() {
+    this.$db.collection('reservations').doc(this.$route.query.ref)
+      .onSnapshot((querySnapshot) => {
+        this.paid = querySnapshot.data().paid;
+        querySnapshot.docChanges().forEach((change) => {
+          if (change.doc.data().paid !== undefined) {
+            this.paid = change.doc.data().paid;
+          }
+        });
+      });
   },
   name: 'reservation',
 };
