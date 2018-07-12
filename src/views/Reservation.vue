@@ -15,7 +15,7 @@
     <div>
       <p>✔ Payment is confirmed.</p>
 
-      <h2>Reservation 133701</h2>
+      <h2>Reservation {{ $route.query.ref }}</h2>
 
       <p>Before you can pick up your car you need to give us your complete contact details.</p>
 
@@ -95,6 +95,6 @@ export default {
       }
     },
   },
-  name: 'home',
+  name: 'reservation',
 };
 </script>

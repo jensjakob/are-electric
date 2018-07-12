@@ -11,24 +11,24 @@
 
     <div class="calendar">
       <template v-for="(day, index) in calendar">
-        <div v-if="moment(index).weekday() === 0" class="calendar-week-box" v-bind:key="moment(index).week()">
-          v. {{ moment(index).week() }}
+        <div v-if="$moment(index).weekday() === 0" class="calendar-week-box" v-bind:key="$moment(index).week()">
+          v. {{ $moment(index).week() }}
         </div>
         <div class="calendar-box" v-bind:key="index">
           <div v-if="day.disabled" class="disabled">
-            {{ moment(index).format('D') }}
+            {{ $moment(index).format('D') }}
           </div>
           <div v-else-if="day.booked" class="booked">
             X
           </div>
           <div v-else-if="day.selected" class="selected" v-on:click="toDay = ''; fromDay = ''">
-            {{ moment(index).format('D') }}
+            {{ $moment(index).format('D') }}
           </div>
           <div v-else-if="fromDay" v-on:click="toDay = index">
-            {{ moment(index).format('D') }}
+            {{ $moment(index).format('D') }}
           </div>
           <div v-else-if="!fromDay" v-on:click="fromDay = index">
-            {{ moment(index).format('D') }}
+            {{ $moment(index).format('D') }}
           </div>
         </div>
       </template>
@@ -55,26 +55,6 @@
 </template>
 
 <script>
-import firebase from 'firebase/app';
-import 'firebase/firestore';
-import moment from 'moment';
-
-moment.locale('sv');
-
-const config = {
-  apiKey: 'AIzaSyCBvuRlPH1OMhsGf3d7_C9UbeGMMpFodro',
-  authDomain: 'are-electric.firebaseapp.com',
-  databaseURL: 'https://are-electric.firebaseio.com',
-  projectId: 'are-electric',
-  storageBucket: '',
-  messagingSenderId: '302291386863',
-};
-firebase.initializeApp(config);
-
-const db = firebase.firestore();
-const settings = { timestampsInSnapshots: true };
-db.settings(settings);
-
 export default {
   data() {
     return {
@@ -114,13 +94,13 @@ export default {
       });
       this.calendar[val].selected = true;
       if (this.toDay) {
-        this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
+        this.calcDays = this.$moment(this.toDay).diff(this.fromDay, 'days');
       }
     },
     // eslint-disable-next-line
     toDay: function (val) {
       if (this.fromDay) {
-        this.calcDays = moment(this.toDay).diff(this.fromDay, 'days');
+        this.calcDays = this.$moment(this.toDay).diff(this.fromDay, 'days');
 
         Object.keys(this.calendar).forEach((key) => {
           this.calendar[key].selected = false;
@@ -128,11 +108,11 @@ export default {
 
         const date = new Date(this.fromDay);
         for (let i = 0; i <= this.calcDays; i += 1) {
-          if (this.calendar[moment(date).format('L')].booked) {
-            this.toDay = moment(date.setDate(date.getDate() - 1)).format('L');
+          if (this.calendar[this.$moment(date).format('L')].booked) {
+            this.toDay = this.$moment(date.setDate(date.getDate() - 1)).format('L');
             break;
           }
-          this.calendar[moment(date).format('L')].selected = true;
+          this.calendar[this.$moment(date).format('L')].selected = true;
           date.setDate(date.getDate() + 1);
         }
 
@@ -141,7 +121,7 @@ export default {
         }
 
         if (this.fromDay >= this.toDay) {
-          this.toDay = moment(this.fromDay).add(1, 'days').format('L');
+          this.toDay = this.$moment(this.fromDay).add(1, 'days').format('L');
         }
 
         // if (this.calcDays >= 0) {
@@ -154,15 +134,15 @@ export default {
     this.fetchData();
 
     const today = new Date();
-    const firstDay = moment(today).weekday('-0');
-    const lastDay = moment().add(1, 'M').endOf('month');
-    const lastSunday = moment(lastDay).weekday('6');
-    const daysToShow = moment(lastSunday).diff(firstDay, 'days');
+    const firstDay = this.$moment(today).weekday('-0');
+    const lastDay = this.$moment().add(1, 'M').endOf('month');
+    const lastSunday = this.$moment(lastDay).weekday('6');
+    const daysToShow = this.$moment(lastSunday).diff(firstDay, 'days');
 
     const date = new Date(firstDay);
     let thisDay;
     for (let i = 0; i <= daysToShow; i += 1) {
-      thisDay = moment(date).format('YYYY-MM-DD');
+      thisDay = this.$moment(date).format('YYYY-MM-DD');
 
       this.calendar[thisDay] = {
         disabled: false,
@@ -171,7 +151,7 @@ export default {
         selected: false,
       };
 
-      if (moment().diff(thisDay, 'days') > 0) {
+      if (this.$moment().diff(thisDay, 'days') > 0) {
         this.calendar[thisDay].disabled = true;
       }
 
@@ -179,23 +159,13 @@ export default {
     }
   },
   methods: {
-    // eslint-disable-next-line
-    moment: function (val) {
-      return moment(val);
-    },
     fetchData() {
-      db.collection('users').doc('LjMAmyGQhb7Pig2zxwgx')
-        .onSnapshot((snap) => {
-          this.name = snap.data().first;
-        });
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
-      db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
+      this.$db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
         .onSnapshot((querySnapshot) => {
           querySnapshot.docChanges().forEach((change) => {
-            const theDay = moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
+            const theDay = this.$moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
             if (change.type === 'added') {
               if (change.doc.data().status === 'booked') {
                 this.calendar[theDay].booked = true;
@@ -209,7 +179,7 @@ export default {
     },
     saveReservation() {
       const now = new Date();
-      db.collection('reservations').add({
+      this.$db.collection('reservations').add({
         item: this.items[this.selectedItem].name,
         start: this.fromDay,
         end: this.toDay,
