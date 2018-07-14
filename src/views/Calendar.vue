@@ -84,6 +84,7 @@ export default {
       agreeStamp: '',
       calendar: {},
       reservationRefId: '',
+      updated: undefined,
     };
   },
   watch: {
@@ -131,9 +132,14 @@ export default {
     },
   },
   mounted() {
-    this.fetchData();
+    // this.$db.collection('reservations').doc('72fU4UIue3vsaXXGebTZ')
+    // .onSnapshot((snap) => {
+    //   // this.email = snap.data().email;
+    // });
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const firstDay = this.$moment(today).weekday('-0');
     const lastDay = this.$moment().add(1, 'M').endOf('month');
     const lastSunday = this.$moment(lastDay).weekday('6');
@@ -144,6 +150,7 @@ export default {
     for (let i = 0; i <= daysToShow; i += 1) {
       thisDay = this.$moment(date).format('YYYY-MM-DD');
 
+      this.$set(this.calendar, thisDay, ''); // force update of calendar
       this.calendar[thisDay] = {
         disabled: false,
         booked: false,
@@ -157,26 +164,33 @@ export default {
 
       date.setDate(date.getDate() + 1);
     }
+
+    // where('item', '==', 'tesla').
+    // if (this.selectedItem !== undefined) {
+    //   let selection = this.items[this.selectedItem].name;
+    // } else {
+    //   let selection
+    // }
+
+    this.$db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
+      .onSnapshot((querySnapshot) => {
+        querySnapshot.docChanges().forEach((change) => {
+          const theDay = this.$moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
+          console.log(theDay, change.type, change.doc.data().status);
+          this.calendar['2018-07-18'].booked = true;
+          if (change.type === 'added') {
+            if (change.doc.data().status === 'booked') {
+              this.calendar[theDay].booked = true; // BUG: Won't update automatically?
+              // force update...?
+            }
+          }
+          if (change.type === 'removed') {
+            //
+          }
+        });
+      });
   },
   methods: {
-    fetchData() {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      this.$db.collection('calendar').where('day', '>=', today).orderBy('day', 'asc')
-        .onSnapshot((querySnapshot) => {
-          querySnapshot.docChanges().forEach((change) => {
-            const theDay = this.$moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
-            if (change.type === 'added') {
-              if (change.doc.data().status === 'booked') {
-                this.calendar[theDay].booked = true;
-              }
-            }
-            if (change.type === 'removed') {
-              //
-            }
-          });
-        });
-    },
     saveReservation() {
       const now = new Date();
       this.$db.collection('reservations').add({
@@ -196,6 +210,7 @@ export default {
         });
     },
   },
+  name: 'calendar',
 };
 </script>
 
