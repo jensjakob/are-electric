@@ -150,7 +150,6 @@ export default {
     for (let i = 0; i <= daysToShow; i += 1) {
       thisDay = this.$moment(date).format('YYYY-MM-DD');
 
-      this.$set(this.calendar, thisDay, ''); // force update of calendar
       this.calendar[thisDay] = {
         disabled: false,
         booked: false,
@@ -161,6 +160,7 @@ export default {
       if (this.$moment().diff(thisDay, 'days') > 0) {
         this.calendar[thisDay].disabled = true;
       }
+      this.$forceUpdate();
 
       date.setDate(date.getDate() + 1);
     }
@@ -176,12 +176,11 @@ export default {
       .onSnapshot((querySnapshot) => {
         querySnapshot.docChanges().forEach((change) => {
           const theDay = this.$moment.unix(change.doc.data().day.seconds).format('YYYY-MM-DD');
-          console.log(theDay, change.type, change.doc.data().status);
-          this.calendar['2018-07-18'].booked = true;
+          // console.log(theDay, change.type, change.doc.data().status);
           if (change.type === 'added') {
             if (change.doc.data().status === 'booked') {
-              this.calendar[theDay].booked = true; // BUG: Won't update automatically?
-              // force update...?
+              this.calendar[theDay].booked = true;
+              this.$forceUpdate();
             }
           }
           if (change.type === 'removed') {
