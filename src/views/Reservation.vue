@@ -120,7 +120,7 @@ export default {
       }
     },
   },
-  updated() { // BUG: will not run the first time
+  mounted() { // will not update when query is changed
     this.$db.collection('reservations').doc(this.$route.query.ref)
       .onSnapshot((snapshot) => {
         this.paid = snapshot.data().paid; // date
