@@ -58,11 +58,30 @@
 
       <p>Reservation ID: {{ $route.query.ref }}</p>
 
-      <p>To keep you reservation you need to make your payment within 3 days.</p>
+      <p>To keep you reservation you need to make your payment within 3 days.<br/>
+      Payments are confirmed manually and sometimes that might take a few days.</p>
 
-      <button>Pay with card</button>
+      <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
 
-      <button>Pay with PayPal account</button>
+      <input type="hidden" name="business" value="info@areelectric.com">
+      <input type="hidden" name="cmd" value="_xclick">
+
+      <!-- return=url, notify_url, custom/invoice (orderid?),
+      paymentaction=authorization, image_url=logo150x50,
+      cancel_return, email, callback_url? -->
+
+      <input type="hidden" name="no_shipping" value="1">
+      <input type="hidden" name="email" v-model="this.email">
+      <input type="hidden" name="invoice" v-model="$route.query.ref">
+
+      <input type="hidden" name="item_name" value="Reservation">
+      <input type="hidden" name="amount" v-model="this.price">
+      <input type="hidden" name="currency_code" value="SEK">
+
+      <input type="image" src="https://www.paypalobjects.com/sv_SE/SE/i/btn/btn_paynowCC_LG.gif" border="0" name="submit" alt="PayPal - Det tryggare, enklare sättet att betala online!">
+      <img alt="" border="0" src="https://www.paypalobjects.com/sv_SE/i/scr/pixel.gif" width="1" height="1">
+
+      </form>
 
       <p>Åre Electic AB<br>phone<br>email</p>
     </div>
@@ -88,6 +107,8 @@ export default {
       stayCity: '',
       contactName: undefined,
       drivers: [],
+      price: undefined,
+      email: '',
     };
   },
   watch: {
@@ -99,11 +120,26 @@ export default {
       }
     },
   },
-  mounted() {
+  updated() { // BUG: will not run the first time
     this.$db.collection('reservations').doc(this.$route.query.ref)
-      .onSnapshot((querySnapshot) => {
-        this.paid = querySnapshot.data().paid;
-        querySnapshot.docChanges().forEach((change) => {
+      .onSnapshot((snapshot) => {
+        this.paid = snapshot.data().paid; // date
+        this.email = snapshot.data().email;
+
+        let itemPrice;
+        switch (snapshot.data().item) {
+          case 'tesla1':
+            itemPrice = 2000;
+            break;
+          case 'tesla2':
+            itemPrice = 1800;
+            break;
+          default:
+            itemPrice = undefined;
+        }
+        this.price = this.$moment(snapshot.data().end).diff(this.$moment(snapshot.data().start), 'days') * itemPrice;
+
+        snapshot.docChanges().forEach((change) => {
           if (change.doc.data().paid !== undefined) {
             this.paid = change.doc.data().paid;
           }
