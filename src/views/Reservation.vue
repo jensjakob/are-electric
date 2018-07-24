@@ -14,7 +14,7 @@
         {{ isCompany ? 'Company name' : 'Name' }}:
         <input v-model="name"><br>
       </p>
-      <p><input type="checkbox" v-model="isCompany"> Company/organization</p>
+      <p><label><input type="checkbox" v-model="isCompany"> Company/organization</label></p>
       <p>
         Country:
         <select v-model="country">
@@ -40,7 +40,11 @@
 
       <p>Your name: <input v-model="contactName"></p>
 
-      <p>Drivers: <input v-model="drivers"></p>
+      <p>Drivers: <button v-on:click="addDriver()">Add driver</button></p>
+
+      <div v-for="(driver, index) in drivers" v-bind:key="index">
+        <input v-model="driver.name"> <input v-model="driver.pnr">
+      </div>
 
     </div>
 
@@ -106,7 +110,12 @@ export default {
       stayZip: '',
       stayCity: '',
       contactName: undefined,
-      drivers: [],
+      drivers: [
+        {
+          name: '',
+          pnr: '',
+        },
+      ],
       price: undefined,
       email: '',
     };
@@ -139,12 +148,23 @@ export default {
         }
         this.price = this.$moment(snapshot.data().end).diff(this.$moment(snapshot.data().start), 'days') * itemPrice;
 
-        snapshot.docChanges().forEach((change) => {
-          if (change.doc.data().paid !== undefined) {
-            this.paid = change.doc.data().paid;
-          }
-        });
+        // snapshot.docChanges().forEach((change) => { // bug
+        //   if (change.doc.data().paid !== undefined) {
+        //     this.paid = change.doc.data().paid;
+        //   }
+        // });
       });
+  },
+  methods: {
+    addDriver() {
+      this.drivers.push({
+        name: '',
+        pnr: '',
+      });
+    },
+    save() {
+
+    },
   },
   name: 'reservation',
 };
