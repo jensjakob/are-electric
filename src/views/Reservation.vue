@@ -1,6 +1,15 @@
 <template>
   <div>
-    <div v-if="paid !== undefined">
+    <div v-if="contactName !== undefined && contactName !== '' && pnr !== ''">
+      <p>✔ Contact details is saved</p>
+      <p>Reservation details and terms has been sent to your email account.</p>
+      <p>You can still add drivers visiting the reservation details page.</p>
+      <button>Reservation details</button>
+      <h2>Terms and conditions</h2>
+      <p>Everything about cancellations, personal details, insurences etc.</p>
+    </div>
+
+    <div v-else-if="paid !== undefined">
       <p>✔ Payment is confirmed.</p>
 
       <h2>Reservation</h2>
@@ -8,7 +17,7 @@
 
       <p>Before you can get your car you need to give us your complete contact details.</p>
 
-      <p><button>Confirm your identity using Swedish BankID</button></p>
+      <p v-if="country === 'se'"><button>Confirm your identity using Swedish BankID</button></p>
 
       <p>
         {{ isCompany ? 'Company name' : 'Name' }}:
@@ -40,22 +49,22 @@
 
       <p>Your name: <input v-model="contactName"></p>
 
-      <p>Drivers: <button v-on:click="addDriver()">Add driver</button></p>
+      <p>Drivers: <button v-on:click="addDriver()">Add driver</button><br>
+      Extra drivers name: &nbsp; <span v-if="country === 'se'">Personnummer:</span></p>
 
       <div v-for="(driver, index) in drivers" v-bind:key="index">
-        <input v-model="driver.name"> <input v-model="driver.pnr">
+        <input v-model="driver.name"> <input v-if="country === 'se'" v-model="driver.pnr">
       </div>
 
+      <button
+        v-bind:disabled="name === ''"
+        v-on:click="save"
+      >
+        Save
+      </button>
+
     </div>
 
-    <div v-else-if="contactName !== undefined">
-      <p>✔ Contact details is saved</p>
-      <p>Reservation details and terms has been sent to your email account.</p>
-      <p>You can still add drivers visiting the reservation details page.</p>
-      <button>Reservation details</button>
-      <h2>Terms and conditions</h2>
-      <p>Everything about cancellations, personal details, insurences etc.</p>
-    </div>
 
     <div v-else>
       <p>✔ Car is reserved. Confirmation has been sent via email.</p>
@@ -109,7 +118,7 @@ export default {
       stayStreet: '',
       stayZip: '',
       stayCity: '',
-      contactName: undefined,
+      contactName: '',
       drivers: [
         {
           name: '',
@@ -134,6 +143,20 @@ export default {
       .onSnapshot((snapshot) => {
         this.paid = snapshot.data().paid; // date
         this.email = snapshot.data().email;
+
+        this.name = snapshot.data().name;
+        this.isCompany = snapshot.data().isCompany;
+        this.country = snapshot.data().country;
+        this.pnr = snapshot.data().pnr;
+        this.vat = snapshot.data().vat;
+        this.street = snapshot.data().street;
+        this.zip = snapshot.data().zip;
+        this.city = snapshot.data().city;
+        this.stayStreet = snapshot.data().stayStreet;
+        this.stayZip = snapshot.data().stayZip;
+        this.stayCity = snapshot.data().stayCity;
+        this.contactName = snapshot.data().contactName;
+        this.drivers = snapshot.data().drivers;
 
         let itemPrice;
         switch (snapshot.data().item) {
@@ -163,7 +186,24 @@ export default {
       });
     },
     save() {
-
+      this.$db.collection('reservations').doc(this.$route.query.ref).set({
+        name: this.name,
+        isCompany: this.isCompany,
+        country: this.country,
+        pnr: this.pnr,
+        vat: this.vat,
+        street: this.street,
+        zip: this.zip,
+        city: this.city,
+        stayStreet: this.stayStreet,
+        stayZip: this.stayZip,
+        stayCity: this.stayCity,
+        contactName: this.contactName,
+        drivers: this.drivers,
+      }, { merge: true })
+        .then(() => {
+          console.log('saved');
+        });
     },
   },
   name: 'reservation',
