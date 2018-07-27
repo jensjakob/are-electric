@@ -1,26 +1,39 @@
 <template>
   <div>
-    <div v-if="identified !== undefined">
-      <p>✔ Contact details is saved</p>
-      <p>Reservation details and terms has been sent to your email account.</p>
-      <p>You can still add drivers.</p>
 
-      <p>Drivers: <button v-on:click="addDriver()">Add driver</button><br>
-      Extra drivers name: &nbsp; <span v-if="country === 'se'">Personnummer:</span></p>
+    <div v-if="!paid">
+      <p>✔ Car is reserved. Confirmation has been sent via email.</p>
 
-      <div v-for="(driver, index) in drivers" v-bind:key="index">
-        <input v-model="driver.name"> <input v-if="country === 'se'" v-model="driver.pnr">
-      </div>
+      <p>Reservation ID: {{ $route.query.ref }}</p>
 
-      <button v-on:click="saveDrivers">
-        Save
-      </button>
+      <p>To keep you reservation you need to make your payment within 3 days.<br/>
+      Payments are confirmed manually and sometimes that might take a few days.</p>
 
-      <h2>Terms and conditions</h2>
-      <p>Everything about cancellations, personal details, insurences etc.</p>
+      <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+
+      <input type="hidden" name="business" value="info@areelectric.com">
+      <input type="hidden" name="cmd" value="_xclick">
+
+      <!-- return=url, notify_url, custom/invoice (orderid?),
+      paymentaction=authorization, image_url=logo150x50,
+      cancel_return, email, callback_url? -->
+
+      <input type="hidden" name="no_shipping" value="1">
+      <input type="hidden" name="email" v-model="this.email">
+      <input type="hidden" name="invoice" v-model="$route.query.ref">
+
+      <input type="hidden" name="item_name" value="Reservation">
+      <input type="hidden" name="amount" v-model="this.price">
+      <input type="hidden" name="currency_code" value="SEK">
+
+      <input type="image" src="https://www.paypalobjects.com/sv_SE/SE/i/btn/btn_paynowCC_LG.gif" border="0" name="submit" alt="PayPal - Det tryggare, enklare sättet att betala online!">
+      <img alt="" border="0" src="https://www.paypalobjects.com/sv_SE/i/scr/pixel.gif" width="1" height="1">
+
+      </form>
+
     </div>
 
-    <div v-else-if="paid !== undefined">
+    <div v-if="paid">
       <p>✔ Payment is confirmed.</p>
 
       <h2>Reservation</h2>
@@ -80,39 +93,27 @@
 
     </div>
 
+    <div v-if="identified">
+      <p>✔ Contact details is saved</p>
+      <p>Reservation details and terms has been sent to your email account.</p>
+      <p>You can still add drivers.</p>
 
-    <div v-else>
-      <p>✔ Car is reserved. Confirmation has been sent via email.</p>
+      <p>Drivers: <button v-on:click="addDriver()">Add driver</button><br>
+      Extra drivers name: &nbsp; <span v-if="country === 'se'">Personnummer:</span></p>
 
-      <p>Reservation ID: {{ $route.query.ref }}</p>
+      <div v-for="(driver, index) in drivers" v-bind:key="index">
+        <input v-model="driver.name"> <input v-if="country === 'se'" v-model="driver.pnr">
+      </div>
 
-      <p>To keep you reservation you need to make your payment within 3 days.<br/>
-      Payments are confirmed manually and sometimes that might take a few days.</p>
+      <button v-on:click="saveDrivers">
+        Save
+      </button>
 
-      <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-
-      <input type="hidden" name="business" value="info@areelectric.com">
-      <input type="hidden" name="cmd" value="_xclick">
-
-      <!-- return=url, notify_url, custom/invoice (orderid?),
-      paymentaction=authorization, image_url=logo150x50,
-      cancel_return, email, callback_url? -->
-
-      <input type="hidden" name="no_shipping" value="1">
-      <input type="hidden" name="email" v-model="this.email">
-      <input type="hidden" name="invoice" v-model="$route.query.ref">
-
-      <input type="hidden" name="item_name" value="Reservation">
-      <input type="hidden" name="amount" v-model="this.price">
-      <input type="hidden" name="currency_code" value="SEK">
-
-      <input type="image" src="https://www.paypalobjects.com/sv_SE/SE/i/btn/btn_paynowCC_LG.gif" border="0" name="submit" alt="PayPal - Det tryggare, enklare sättet att betala online!">
-      <img alt="" border="0" src="https://www.paypalobjects.com/sv_SE/i/scr/pixel.gif" width="1" height="1">
-
-      </form>
-
-      <p>Åre Electic AB<br>phone<br>email</p>
+      <h2>Terms and conditions</h2>
+      <p>Everything about cancellations, personal details, insurences etc.</p>
     </div>
+
+    <p>Åre Electic AB<br>phone<br>email</p>
 
   </div>
 </template>
