@@ -11,7 +11,11 @@
 
     <div class="calendar">
       <template v-for="(day, index) in calendar">
-        <div v-if="$moment(index).weekday() === 0" class="calendar-week-box" v-bind:key="$moment(index).week()">
+        <div
+          v-if="$moment(index).weekday() === 0"
+          class="calendar-week-box"
+          v-bind:key="$moment(index).week()"
+        >
           v. {{ $moment(index).week() }}
         </div>
         <div class="calendar-box" v-bind:key="index">
@@ -53,7 +57,12 @@
       <p>E-mail: <input type="email" v-model="email"></p>
       <p>Phone: <input type="tel" v-model="phone"></p>
       <p><label><input type="checkbox" v-model="agree"> Agree terms</label></p>
-      <button v-bind:disabled="selectedItem === undefined || !fromDay || !toDay || !email || !phone || !agree" v-on:click="saveReservation">Make reservation</button>
+      <button
+        v-bind:disabled="selectedItem === undefined || !fromDay || !toDay || !email || !phone || !agree"
+        v-on:click="saveReservation"
+      >
+        Make reservation
+      </button>
     </div>
 
   </div>

@@ -1,10 +1,21 @@
 <template>
   <div>
-    <div v-if="contactName !== undefined && contactName !== '' && pnr !== ''">
+    <div v-if="identified !== undefined">
       <p>✔ Contact details is saved</p>
       <p>Reservation details and terms has been sent to your email account.</p>
-      <p>You can still add drivers visiting the reservation details page.</p>
-      <button>Reservation details</button>
+      <p>You can still add drivers.</p>
+
+      <p>Drivers: <button v-on:click="addDriver()">Add driver</button><br>
+      Extra drivers name: &nbsp; <span v-if="country === 'se'">Personnummer:</span></p>
+
+      <div v-for="(driver, index) in drivers" v-bind:key="index">
+        <input v-model="driver.name"> <input v-if="country === 'se'" v-model="driver.pnr">
+      </div>
+
+      <button v-on:click="saveDrivers">
+        Save
+      </button>
+
       <h2>Terms and conditions</h2>
       <p>Everything about cancellations, personal details, insurences etc.</p>
     </div>
@@ -55,6 +66,10 @@
       <div v-for="(driver, index) in drivers" v-bind:key="index">
         <input v-model="driver.name"> <input v-if="country === 'se'" v-model="driver.pnr">
       </div>
+
+      <p>
+        This page will no loger be available for editing after hitting the "save" button.
+      </p>
 
       <button
         v-bind:disabled="name === ''"
@@ -107,6 +122,7 @@ export default {
   data() {
     return {
       paid: undefined,
+      identified: undefined,
       name: '',
       isCompany: false,
       country: 'se',
@@ -137,25 +153,32 @@ export default {
         this.isCompany = true;
       }
     },
+    // eslint-disable-next-line
+    drivers: function (val) {
+      this.saved = false;
+      console.log(val);
+    },
+    deep: true,
   },
   mounted() { // will not update when query is changed
     this.$db.collection('reservations').doc(this.$route.query.ref)
       .onSnapshot((snapshot) => {
         this.paid = snapshot.data().paid; // date
         this.email = snapshot.data().email;
+        this.identified = snapshot.data().identified; // date
 
-        this.name = snapshot.data().name;
-        this.isCompany = snapshot.data().isCompany;
-        this.country = snapshot.data().country;
-        this.pnr = snapshot.data().pnr;
-        this.vat = snapshot.data().vat;
-        this.street = snapshot.data().street;
-        this.zip = snapshot.data().zip;
-        this.city = snapshot.data().city;
-        this.stayStreet = snapshot.data().stayStreet;
-        this.stayZip = snapshot.data().stayZip;
-        this.stayCity = snapshot.data().stayCity;
-        this.contactName = snapshot.data().contactName;
+        // this.name = snapshot.data().name;
+        // this.isCompany = snapshot.data().isCompany;
+        // this.country = snapshot.data().country;
+        // // this.pnr = snapshot.data().pnr;
+        // this.vat = snapshot.data().vat;
+        // this.street = snapshot.data().street;
+        // this.zip = snapshot.data().zip;
+        // this.city = snapshot.data().city;
+        // this.stayStreet = snapshot.data().stayStreet;
+        // this.stayZip = snapshot.data().stayZip;
+        // this.stayCity = snapshot.data().stayCity;
+        // // this.contactName = snapshot.data().contactName;
         this.drivers = snapshot.data().drivers;
 
         let itemPrice;
@@ -187,6 +210,7 @@ export default {
     },
     save() {
       this.$db.collection('reservations').doc(this.$route.query.ref).set({
+        identified: new Date(),
         name: this.name,
         isCompany: this.isCompany,
         country: this.country,
@@ -202,7 +226,15 @@ export default {
         drivers: this.drivers,
       }, { merge: true })
         .then(() => {
-          console.log('saved');
+          console.log('Saved');
+        });
+    },
+    saveDrivers() {
+      this.$db.collection('reservations').doc(this.$route.query.ref).set({
+        drivers: this.drivers,
+      }, { merge: true })
+        .then(() => {
+          console.log('Saved drivers');
         });
     },
   },
