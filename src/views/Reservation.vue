@@ -33,7 +33,7 @@
 
     </div>
 
-    <div v-if="paid">
+    <div v-if="paid && !identified">
       <p>✔ Payment is confirmed.</p>
 
       <h2>Reservation</h2>
@@ -71,7 +71,7 @@
         <input v-model="stayCity">
       </p>
 
-      <p>Your name: <input v-model="contactName"></p>
+      <p v-if="!isCompany">Your name: <input v-model="contactName"></p>
 
       <p>Drivers: <button v-on:click="addDriver()">Add driver</button><br>
       Extra drivers name: &nbsp; <span v-if="country === 'se'">Personnummer:</span></p>
@@ -180,7 +180,10 @@ export default {
         // this.stayZip = snapshot.data().stayZip;
         // this.stayCity = snapshot.data().stayCity;
         // // this.contactName = snapshot.data().contactName;
-        this.drivers = snapshot.data().drivers;
+
+        if (snapshot.data().drivers) {
+          this.drivers = snapshot.data().drivers;
+        }
 
         let itemPrice;
         switch (snapshot.data().item) {
